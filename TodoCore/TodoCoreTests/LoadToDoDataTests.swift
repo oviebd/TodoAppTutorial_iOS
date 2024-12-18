@@ -14,32 +14,78 @@ import XCTest
 //Categorized list based on data and completion type (today, upcoming, completed)
 
 
-class TodoDataLoader {
-     
-    init(){
-        
-    }
-    
+struct TodoData : Equatable{
+    let id : String
+    let title : String
+    let date : Date
+    let isCompleted : Bool
+    let importanceTag : String
 }
 
-class TodoDataLoaderStub {
-    let loader : TodoDataLoader
-    var messages: [String] = []
-    init(loader: TodoDataLoader) {
-        self.loader = loader
+protocol DataLoader {
+    func loadData(completion: @escaping ([TodoData]) -> Void)
+}
+
+class TodoDataLoader {
+    
+    let dataLoader : DataLoader
+    
+    init (dataLoader: DataLoader){
+        self.dataLoader = dataLoader
+    }
+
+    func loadData(completion: @escaping ([TodoData]) -> Void){
+        dataLoader.loadData(completion: completion)
+    }
+}
+
+class TodoDataLoaderSpy : DataLoader {
+   
+    var todoList : [TodoData] = []
+    
+    func loadDataWIthSuccess(data: [TodoData]){
+        todoList = data
     }
     
-    
- 
+    func loadData(completion: @escaping ([TodoData]) -> Void){
+      //  loader.loadData(completion: completion)
+        completion(todoList)
+    }
 }
 
 final class LoadToDoDataTests: XCTestCase {
 
-    // at startup no data will load
-    func test_startup_donotLoadData(){
-        let loader = TodoDataLoader()
-        let sut = TodoDataLoaderStub(loader: loader)
-        XCTAssertEqual(sut.messages.count, 0)
+
+    func test_loadData_LoadsDataAfterLoadSuccessfully(){
+        let spy = TodoDataLoaderSpy()
+        let sut = TodoDataLoader(dataLoader: spy)
+        let todolist = GenerateDummyTodoList()
+        var expectedData : [TodoData]?
+       
+      
+        spy.loadDataWIthSuccess(data: todolist)
+      
+        sut.loadData(){ receivedData in
+            expectedData = receivedData
+        }
+        XCTAssertEqual(todolist,expectedData )
+    }
+    
+    
+    // Marks : Helpers
+    
+    func GenerateDummyTodoList() -> [TodoData] {
+        return [uniqueTodo(title:"Do study"),
+                uniqueTodo(title: "Clean room"),
+                uniqueTodo(title: "Prepare Food")]
+    }
+    
+    func uniqueTodo(title : String, date : Date = Date(), isCompleted : Bool = false, importanceTag : String = "Important") -> TodoData{
+        return TodoData(id: UUID().uuidString,
+                        title: title,
+                        date: date,
+                        isCompleted: isCompleted,
+                        importanceTag: importanceTag)
     }
 
 }
